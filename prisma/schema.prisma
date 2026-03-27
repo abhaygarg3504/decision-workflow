@@ -1,0 +1,57 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model WorkflowInstance {
+  id            String   @id @default(uuid())
+  workflowType  String                        
+  status        String   @default("pending")  
+  inputSnapshot Json                          
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  auditLogs     AuditLog[]                   
+  statusHistory StatusHistory[]              
+
+  @@index([workflowType, status])            
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  workflowId   String
+  stepName     String                        
+  rulesApplied Json                          
+  inputUsed    Json
+  result       String                        
+  reason       String?                       
+  createdAt    DateTime @default(now())
+
+  workflow     WorkflowInstance @relation(fields: [workflowId], references: [id])
+
+  @@index([workflowId])
+}
+
+model StatusHistory {
+  id          String   @id @default(uuid())
+  workflowId  String
+  fromStatus  String
+  toStatus    String
+  reason      String?
+  changedAt   DateTime @default(now())
+
+  workflow    WorkflowInstance @relation(fields: [workflowId], references: [id])
+}
+
+model IdempotencyKey {
+  key          String   @id                  
+  workflowId   String                        
+  response     Json                          
+  createdAt    DateTime @default(now())
+}
